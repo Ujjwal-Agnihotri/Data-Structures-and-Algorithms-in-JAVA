@@ -1,0 +1,56 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+class RangeFrequencyCounter {
+  Map<Integer, List<Integer>> map;
+
+  RangeFrequencyCounter(int[] nums) {
+    int n = nums.length;
+    map = new HashMap<>();
+    for (int i = 0; i < n; ++i) {
+      List<Integer> list = map.getOrDefault(nums[i], new ArrayList<>());
+      list.add(i);
+      map.put(nums[i], list);
+    }
+  }
+
+  int queryRangeInclusive(int element, int left, int right) {
+    if (!map.containsKey(element)) return 0;
+    List<Integer> list = map.get(element);
+    int smallerIndexes = strictLowerBound(left, list, element);
+    int largerIndexes = strictUpperBound(right, list, element);
+    return largerIndexes - smallerIndexes - 1;
+  }
+
+  private int strictLowerBound(int left, List<Integer> list, int element) {
+    int l = 0, sz = list.size(), r = sz - 1;
+    int res = -1;
+    while (l <= r) {
+      int mid = (l + r) >> 1;
+      if (list.get(mid) < left) {
+        res = mid;
+        l = mid + 1;
+      } else {
+        r = mid - 1;
+      }
+    }
+    return res;
+  }
+
+  private int strictUpperBound(int right, List<Integer> list, int element) {
+    int l = 0, sz = list.size(), r = sz - 1;
+    int res = sz;
+    while (l <= r) {
+      int mid = (l + r) >> 1;
+      if (list.get(mid) > right) {
+        res = mid;
+        r = mid - 1;
+      } else {
+        l = mid + 1;
+      }
+    }
+    return res;
+  }
+}
