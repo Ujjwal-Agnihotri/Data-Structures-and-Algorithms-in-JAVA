@@ -1,0 +1,76 @@
+class Node {
+  Node[] childrenOf;
+  int num;
+  int occurencesCount;
+
+  Node() {
+    childrenOf = new Node[2];
+    num = 0;
+    occurencesCount = 0;
+  }
+}
+
+class BinaryTrie {
+  Node root;
+  boolean isEmpty;
+
+  BinaryTrie() {
+    root = new Node();
+    isEmpty = true;
+  }
+
+  void insert(int num) {
+    isEmpty = false;
+    Node temp = root;
+    for (int bit = 30; bit >= 0; --bit) {
+      int mask = 1 << bit;
+      int val = (num & mask) > 0 ? 1 : 0;
+      if (temp.childrenOf[val] == null) {
+        temp.childrenOf[val] = new Node();
+      }
+      temp = temp.childrenOf[val];
+      temp.occurencesCount = temp.occurencesCount + 1;
+    }
+    temp.num = num;
+  }
+
+  void remove(int num) {
+    Node temp = root;
+    for (int bit = 30; bit >= 0; --bit) {
+      int mask = 1 << bit;
+      int val = (mask & num) > 0 ? 1 : 0;
+      temp = temp.childrenOf[val];
+      temp.occurencesCount = temp.occurencesCount - 1;
+    }
+  }
+
+  int maximumXor(int num) {
+    Node temp = root;
+    for (int bit = 30; bit >= 0; --bit) {
+      int mask = 1 << bit;
+      int val = (mask & num) > 0 ? 1 : 0;
+      if (temp.childrenOf[1 - val] != null && temp.childrenOf[1 - val].occurencesCount > 0) {
+        temp = temp.childrenOf[1 - val];
+      } else {
+        assert temp.childrenOf[val] != null;
+        temp = temp.childrenOf[val];
+      }
+    }
+    return num ^ temp.num;
+  }
+
+  int minimumXor(int num) {
+    Node temp = root;
+    for (int bit = 30; bit >= 0; --bit) {
+      int mask = 1 << bit;
+      int val = (mask & num) > 0 ? 1 : 0;
+      if (temp.childrenOf[val] != null) {
+        temp = temp.childrenOf[val];
+      } else {
+        assert temp.childrenOf[1 - val] != null;
+        temp = temp.childrenOf[1 - val];
+      }
+    }
+    return num ^ temp.num;
+  }
+}
