@@ -1,0 +1,30 @@
+class UnionFind {
+  int[] parent, size;
+
+  UnionFind(int n) {
+    parent = new int[n];
+    size = new int[n];
+    for (int i = 0; i < n; ++i) {
+      parent[i] = i;
+      size[i] = 1;
+    }
+  }
+
+  int root(int vertex) {
+    if (parent[vertex] == vertex) return vertex;
+    return parent[vertex] = root(parent[vertex]);
+  }
+
+  void union(int u, int v) {
+    int r1 = root(u), r2 = root(v);
+    if (r1 != r2) {
+      if (size[r2] > size[r1]) {
+        int t = r1;
+        r1 = r2;
+        r2 = t;
+      }
+      parent[r2] = r1;
+      size[r1] += size[r2];
+    }
+  }
+}
