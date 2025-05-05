@@ -1,0 +1,93 @@
+class Node {
+  Node[] hasLinkTo;
+  int occurrencesCount, endsCount;
+  boolean endsHere;
+
+  Node() {
+    occurrencesCount = 0;
+    endsCount = 0;
+    hasLinkTo = new Node[26];
+    endsHere = false;
+  }
+}
+
+class StringTrie {
+  /*
+  Root Node is used as dummy Node, actual Tree starts one level below Root.
+   */
+  Node root;
+
+  StringTrie() {
+    root = new Node();
+  }
+
+  void insert(String word) {
+    Node temp = root;
+    int n = word.length();
+    for (int i = 0; i < n; ++i) {
+      char ch = word.charAt(i);
+      if (temp.hasLinkTo[ch - 'a'] == null) {
+        temp.hasLinkTo[ch - 'a'] = new Node();
+      }
+      temp = temp.hasLinkTo[ch - 'a'];
+      temp.occurrencesCount = temp.occurrencesCount + 1;
+    }
+    temp.endsHere = true;
+  }
+
+  boolean search(String word) {
+    int n = word.length();
+    Node temp = root;
+    for (int i = 0; i < n; ++i) {
+      char ch = word.charAt(i);
+      if (temp.hasLinkTo[ch - 'a'] == null) return false;
+      temp = temp.hasLinkTo[ch - 'a'];
+    }
+    return temp.endsHere;
+  }
+
+  boolean startsWith(String prefix) {
+    int n = prefix.length();
+    Node temp = root;
+    for (int i = 0; i < n; ++i) {
+      char ch = prefix.charAt(i);
+      if (temp.hasLinkTo[ch - 'a'] == null) return false;
+      temp = temp.hasLinkTo[ch - 'a'];
+    }
+    return true;
+  }
+
+  int countPrefixesEqualTo(String word) {
+    int n = word.length();
+    Node temp = root;
+    for (int i = 0; i < n; ++i) {
+      char ch = word.charAt(i);
+      if (temp.hasLinkTo[ch - 'a'] == null) return 0;
+      temp = temp.hasLinkTo[ch - 'a'];
+    }
+    return temp.occurrencesCount;
+  }
+
+  int countWordsEqualTo(String word) {
+    int n = word.length();
+    Node temp = root;
+    for (int i = 0; i < n; ++i) {
+      char ch = word.charAt(i);
+      if (temp.hasLinkTo[ch - 'a'] == null) return 0;
+      temp = temp.hasLinkTo[ch - 'a'];
+    }
+    return temp.endsCount;
+  }
+
+  void erase(String word) {
+    assert (search(word));
+    int n = word.length();
+    Node temp = root;
+    for (int i = 0; i < n; ++i) {
+      char ch = word.charAt(i);
+      temp = temp.hasLinkTo[ch - 'a'];
+    }
+    temp.endsCount = temp.endsCount - 1;
+    if (temp.endsCount == 0) temp.endsHere = false;
+  }
+}
