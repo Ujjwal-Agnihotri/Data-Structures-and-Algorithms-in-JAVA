@@ -1,0 +1,132 @@
+import java.util.ArrayList;
+import java.util.List;
+
+class MergeSortTree {
+  static class TreeNode {
+    List<Integer> sortedList;
+
+    TreeNode(List<Integer> sortedList) {
+      this.sortedList = sortedList;
+    }
+  }
+
+  int[] arr;
+  TreeNode[] segmentArray;
+  int heightOfTheMergeSortTree;
+  int totalNodes;
+  int n;
+
+  MergeSortTree(int[] arr) {
+    this.n = arr.length;
+    this.arr = arr;
+    heightOfTheMergeSortTree = 0;
+    int temp = n;
+    while (temp != 1) {
+      temp = (temp + 1) >> 1;
+      heightOfTheMergeSortTree += 1;
+    }
+    this.totalNodes = 1 << (heightOfTheMergeSortTree + 1);
+    segmentArray = new TreeNode[totalNodes];
+    buildUtil(0, n - 1, 0);
+  }
+
+  private int leftChildIndex(int i) {
+    return (i << 1) + 1;
+  }
+
+  private int rightChildIndex(int i) {
+    return (i << 1) + 2;
+  }
+
+  private int split(int l, int r) {
+    return l + r >> 1;
+  }
+
+  private List<Integer> mergeSorter(TreeNode left, TreeNode right) {
+    List<Integer> leftList = left.sortedList, rightList = right.sortedList;
+    int n = leftList.size(), m = rightList.size();
+    List<Integer> res = new ArrayList<>();
+    int i = 0, j = 0;
+    while (i < n && j < m) {
+      if (leftList.get(i) < rightList.get(j))
+        res.add(leftList.get(i++));
+      else
+        res.add(rightList.get(j++));
+    }
+    while (i < n) {
+      res.add(leftList.get(i++));
+    }
+    while (j < m) {
+      res.add(rightList.get(j++));
+    }
+    return res;
+  }
+
+  private int binarySearch(int indexInTree, int queryValue) {
+    List<Integer> list = segmentArray[indexInTree].sortedList;
+    int lo = 0, sz = list.size(), hi = sz - 1, res = -1;
+    while (lo <= hi) {
+      int mid = (lo + hi) >> 1;
+      if (list.get(mid) * 2L < queryValue) {
+        lo = mid + 1;
+        res = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return res + 1;
+  }
+
+  /*
+  returns the smallest index j such that j > index and arr[j] > queryValue else -1
+   */
+  public int nextGreaterIndex(int index, int queryValue) {
+    if (index == n - 1)
+      return -1;
+    return nextGreaterIndex(0, n - 1, 0, index + 1, queryValue);
+  }
+
+  private int nextGreaterIndex(int left, int right, int indexInTree, int queryIndex, int queryValue) {
+    if (right < queryIndex) {
+      return -1;
+    }
+    if (left == right)
+      return left;
+    int leftChild = leftChildIndex(indexInTree), rightChild = rightChildIndex(indexInTree), mid = split(left, right);
+    int res = -1;
+    if (segmentArray[leftChild].sortedList.getLast() > queryValue) {
+      res = nextGreaterIndex(left, mid, leftChild, queryIndex, queryValue);
+    }
+    if (res == -1 && segmentArray[rightChild].sortedList.getLast() > queryValue) {
+      res = nextGreaterIndex(mid + 1, right, rightChild, queryIndex, queryValue);
+    }
+    return res;
+  }
+
+  private void buildUtil(int left, int right, int indexInTree) {
+    if (left == right) {
+      segmentArray[indexInTree] = new TreeNode(new ArrayList<>(List.of(arr[left])));
+      return;
+    }
+    int leftChild = leftChildIndex(indexInTree), rightChild = rightChildIndex(indexInTree), mid = split(left, right);
+    buildUtil(left, mid, leftChild);
+    buildUtil(mid + 1, right, rightChild);
+    segmentArray[indexInTree] = new TreeNode(mergeSorter(segmentArray[leftChild], segmentArray[rightChild]));
+  }
+
+  public int rangeMaxQuery(int left, int right) {
+    return rangeMaxQuery(0, n - 1, 0, left, right);
+  }
+
+  private int rangeMaxQuery(int left, int right, int indexInTree, int leftQueryIndex, int rightQueryIndex) {
+    if (rightQueryIndex < left || right < leftQueryIndex)
+      return Integer.MIN_VALUE;
+    if (left >= leftQueryIndex && right <= rightQueryIndex) {
+      return segmentArray[indexInTree].sortedList.getLast();
+    }
+    int leftChild = leftChildIndex(indexInTree), rightChild = rightChildIndex(indexInTree), mid = split(left, right);
+    int leftChildContribution = rangeMaxQuery(left, mid, leftChild, leftQueryIndex, rightQueryIndex);
+    int rightChildContribution = rangeMaxQuery(mid + 1, right, rightChild, leftQueryIndex, rightQueryIndex);
+    return Math.max(leftChildContribution, rightChildContribution);
+  }
+}
