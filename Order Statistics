@@ -1,0 +1,224 @@
+
+class KthOrderStatistics {
+
+  private final Map<Long, Integer> valueToIndex;
+  private final Map<Integer, Long> indexToValue;
+  private final SegmentTree sg;
+  private final int max;
+  public int size;
+
+  KthOrderStatistics(HashSet<Long> set) {
+    valueToIndex = new HashMap<>();
+    indexToValue = new HashMap<>();
+    size = 0;
+    List<Long> list = new ArrayList<>(set);
+    list.sort(null);
+    int uniques = set.size();
+    for (int i = 1; i <= uniques; ++i) {
+      valueToIndex.put(list.get(i - 1), i);
+      indexToValue.put(i, list.get(i - 1));
+    }
+    max = uniques + 1;
+    sg = new SegmentTree(new long[max + 1], 0L, valueToIndex, indexToValue);
+  }
+
+  public boolean contains(long value) {
+    return (int) sg.getValueAtIndex(valueToIndex.get(value)) > 0;
+  }
+
+  public void add(long value) {
+    ++size;
+    sg.pointUpdate(value, 1L);
+  }
+
+  public void remove(long value) {
+    if (sg.getValueAtIndex(valueToIndex.get(value)) == 0) {
+      return;
+    }
+    --size;
+    sg.pointUpdate(value, -1L);
+  }
+
+  public int countLesser(long value) {
+    return (int) sg.rangeQuery(0, valueToIndex.get(value) - 1);
+  }
+
+  public int countGreater(long value) {
+    int id = valueToIndex.get(value);
+    return (int) sg.rangeQuery(id + 1, max);
+  }
+
+  public int numberOfValuesInclusiveBetween(long a, long b) {
+    if (b < a) {
+      long temp = a;
+      a = b;
+      b = temp;
+    }
+    int right = (int) sg.rangeQuery(0, valueToIndex.get(b));
+    int left = countLesser(a);
+    return right - left;
+  }
+
+  public long getKthSmallest(int k) {
+    if (k == 0)
+      return 0L;
+    if (size < k) {
+      throw new RuntimeException("I wish I could escape, but I don't wanna fake !! ");
+    }
+    int res = sg.firstGreaterIndex(k);
+    return indexToValue.get(res);
+
+  }
+
+  public long getKthLargest(int k) {
+    return getKthSmallest(size + 1 - k);
+  }
+
+  public long getSumOfKSmallestElements(int k) {
+    if (k == 0) return 0L;
+    int uptil = sg.firstGreaterIndex(k);
+    int smaller = countLesser(indexToValue.get(uptil));
+    int currFreq = (int) sg.getValueAtIndex(uptil);
+    k -= smaller;
+    assert k >= 1;
+    int gap = currFreq - k;
+    return sg.queryRangeSum(0, uptil) - (gap * indexToValue.get(uptil));
+  }
+
+  public long getSumOfKLargestElements(int k) {
+    return sg.queryRangeSum(0, max) - getSumOfKSmallestElements(size - k);
+  }
+
+  public long smallest() {
+    return getKthSmallest(1);
+  }
+
+  public long largest() {
+    return getKthLargest(1);
+  }
+}
+
+class SegmentTree {
+  private final long[] freqSegmentArray;
+  private final long[] sumSegmentArray;
+  private final int nodes;
+  private final long[] arr;
+  private final int N;
+  private final long neutralElement;
+  private final Map<Long, Integer> valueToIndex;
+  private final Map<Integer, Long> indexToValue;
+
+  SegmentTree(long[] a, long neutralElement, Map<Long, Integer> valueToIndex, Map<Integer, Long> indexToValue) {
+    int n = a.length;
+    int curr = 1;
+    this.N = n;
+    this.neutralElement = neutralElement;
+    while (curr < n) curr <<= 1;
+    this.nodes = curr << 1;
+    this.arr = a;
+    freqSegmentArray = new long[nodes];
+    sumSegmentArray = new long[nodes];
+    build(0, n - 1, 0);
+    this.valueToIndex = valueToIndex;
+    this.indexToValue = indexToValue;
+  }
+
+  private void build(int l, int r, int treeIndex) {
+    if (l == r) {
+      freqSegmentArray[treeIndex] = arr[l];
+      sumSegmentArray[treeIndex] = arr[l];
+      return;
+    }
+    int mid = (l + r) >> 1;
+    int left = treeIndex * 2 + 1, right = treeIndex * 2 + 2;
+    build(l, mid, left);
+    build(mid + 1, r, right);
+    freqSegmentArray[treeIndex] = combine(freqSegmentArray[left], freqSegmentArray[right]);
+    sumSegmentArray[treeIndex] = combine(sumSegmentArray[left], sumSegmentArray[right]);
+  }
+
+  private long combine(long a, long b) {
+    return a + b;
+  }
+
+  public void pointUpdate(long value, long freq) {
+    int index = valueToIndex.get(value);
+    pointUpdate(0, N - 1, 0, index, freq, value);
+  }
+
+  private void pointUpdate(int l, int r, int treeIndex, int updateAt, long occ, long og) {
+    if (l == r) {
+      freqSegmentArray[treeIndex] += occ;
+      sumSegmentArray[treeIndex] += (occ * og);
+      return;
+    }
+    int mid = (l + r) >> 1;
+    int left = treeIndex * 2 + 1, right = treeIndex * 2 + 2;
+    if (updateAt <= mid) {
+      pointUpdate(l, mid, left, updateAt, occ, og);
+    } else {
+      pointUpdate(mid + 1, r, right, updateAt, occ, og);
+    }
+    freqSegmentArray[treeIndex] = combine(freqSegmentArray[left], freqSegmentArray[right]);
+    sumSegmentArray[treeIndex] = combine(sumSegmentArray[left], sumSegmentArray[right]);
+  }
+
+  /**
+   * @param alpha 0 base left index for query
+   * @param omega 0 base right index for query
+   * @return res for range query
+   */
+  public long rangeQuery(int alpha, int omega) {
+    return rangeQuery(0, N - 1, 0, alpha, omega);
+  }
+
+  private long rangeQuery(int l, int r, int treeIndex, int alpha, int omega) {
+    if (l > omega || r < alpha) {
+      return neutralElement;
+    }
+    if (l >= alpha && r <= omega) {
+      return freqSegmentArray[treeIndex];
+    }
+    int mid = (l + r) >> 1;
+    int left = treeIndex * 2 + 1, right = treeIndex * 2 + 2;
+    return combine(rangeQuery(l, mid, left, alpha, omega), rangeQuery(mid + 1, r, right, alpha, omega));
+  }
+
+  public long queryRangeSum(int alpha, int omega) {
+    return queryRangeSum(0, N - 1, 0, alpha, omega);
+  }
+
+  private long queryRangeSum(int l, int r, int treeIndex, int alpha, int omega) {
+    if (l > omega || r < alpha) {
+      return neutralElement;
+    }
+    if (l >= alpha && r <= omega) {
+      return sumSegmentArray[treeIndex];
+    }
+    int mid = (l + r) >> 1;
+    int left = treeIndex * 2 + 1, right = treeIndex * 2 + 2;
+    return combine(queryRangeSum(l, mid, left, alpha, omega), queryRangeSum(mid + 1, r, right, alpha, omega));
+  }
+
+  public long getValueAtIndex(int index) {
+    return rangeQuery(index, index);
+  }
+
+  public int firstGreaterIndex(int k) {
+    return firstGreaterIndex(0, N - 1, 0, k);
+
+  }
+
+  private int firstGreaterIndex(int l, int r, int treeIndex, int k) {
+    if (l == r) {
+      return l;
+    }
+    int mid = (l + r) >> 1;
+    int left = treeIndex * 2 + 1, right = treeIndex * 2 + 2;
+    if (freqSegmentArray[left] >= k) {
+      return firstGreaterIndex(l, mid, left, k);
+    } else {
+      return firstGreaterIndex(mid + 1, r, right, k - (int) freqSegmentArray[left]);
+    }
+  }
+}
